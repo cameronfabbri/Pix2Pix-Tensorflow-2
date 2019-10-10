@@ -53,13 +53,15 @@ def preprocess(x):
     return (x / 127.5) - 1.0
 
 
-def getPaths(data_dir, ext='png'):
+def getPaths(data_dir, exts=['png','PNG','jpg','JPG','JPEG']):
     """ Returns a list of paths """
-    pattern = '*.' + ext
+
     image_paths = []
-    for d, s, fList in os.walk(data_dir):
-        for filename in fList:
-            if fnmatch.fnmatch(filename, pattern):
-                fname_ = os.path.join(d, filename)
-                image_paths.append(fname_)
+    for ext in exts:
+        pattern = '*.' + ext
+        for d, s, fList in os.walk(data_dir):
+            for filename in fList:
+                if fnmatch.fnmatch(filename, pattern):
+                    fname_ = os.path.join(d, filename)
+                    image_paths.append(fname_)
     return image_paths
