@@ -14,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', required=False, default=4, type=int, help='Batch size')
     parser.add_argument('--l1_weight', required=False, default=100., type=float, help='Weight for L1 loss')
-    parser.add_argument('--epochs', required=False, default=50, type=int, help='Number of epochs')
+    parser.add_argument('--epochs', required=False, default=200, type=int, help='Number of epochs')
     parser.add_argument('--dataset', required=False, default='maps', type=str, help='Dataset to use')
     parser.add_argument('--save_freq', required=False, default=500, type=int, help='How often to save a model and run on eval split')
     parser.add_argument('--print_freq', required=False, default=10, type=int, help='How often to print model loss')
@@ -32,15 +32,14 @@ def main():
 
     learning_rate = 0.0002
     beta_1 = 0.5
-    beta_2 = 0.999
 
     # Save variables on the cpu
     with tf.device('/CPU:0'):
         generator = pix2pix.Pix2PixGenerator()
         discriminator = pix2pix.Pix2PixDiscriminator()
 
-        generator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2)
-        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2)
+        generator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
+        discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
 
         train_summary_writer = tf.summary.create_file_writer(os.path.join(args.checkpoint_dir, 'logs'))
 
@@ -94,7 +93,9 @@ def main():
             # Reconstruction loss
             err_l1 = args.l1_weight*tf.reduce_mean(tf.abs(batch_images_g-batch_images_y))
 
-            gradients = tape.gradient(errG+err_l1, generator.trainable_variables)
+            total_err = err_l1+errG
+
+            gradients = tape.gradient(total_err, generator.trainable_variables)
             generator_optimizer.apply_gradients(zip(gradients, generator.trainable_variables))
 
         return {
@@ -153,7 +154,8 @@ def main():
             errG = loss_G['errG']
             err_l1 = loss_G['err_l1']
 
-            print(' | epoch: '+str(epoch_num)+' | step: '+str(step)+' | errD: '+str(errD.numpy())+' | errG: '+str(errG.numpy())+' | err_l1: '+str(err_l1.numpy()))
+            if step % args.print_freq == 0:
+                print(' | epoch: '+str(epoch_num)+' | step: '+str(step)+' | errD: '+str(errD.numpy())+' | errG: '+str(errG.numpy())+' | err_l1: '+str(err_l1.numpy()))
 
             step += 1
 
